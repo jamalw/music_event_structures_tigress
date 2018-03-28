@@ -127,18 +127,13 @@ def HMM(X,K,loo_idx,song_idx,song_bounds):
     corrs = np.zeros(nTR-w)
     for t in range(nTR-w):
         corrs[t] = pearsonr(loo[:,t],loo[:,t+w])[0]
-    _, event_lengths = np.unique(events, return_counts=True)
        
     # Compute within vs across boundary correlations, for real and permuted bounds
     for p in range(nPerm+1):
         within = corrs[events[:-w] == events[w:]].mean()
         across = corrs[events[:-w] != events[w:]].mean()
         within_across[p] = within - across
-        #print('wVa: ',within_across[p])
-        if np.isnan(within_across[p]):
-            print('NaN Found!!!',p)
-        np.random.seed(p)
-        perm_lengths = np.random.permutation(event_lengths)
+        
         np.random.seed(p)
         events = np.zeros(nTR, dtype=np.int)
         events[np.random.choice(nTR,K-1,replace=False)] = 1
