@@ -124,6 +124,24 @@ def HMM(X,K,loo_idx,song_idx,song_bounds):
     ev.fit(others[:,song_bounds[song_idx]:song_bounds[song_idx + 1]].T)
     events = np.argmax(ev.segments_[0],axis=1)
 
+    ####
+    # plot searchlights
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    shared_data = srm.transform(run2)
+    avg_response = sum(shared_data)/len(shared_data)
+    plt.figure(figsize=(10,10))
+    plt.imshow(np.corrcoef(avg_response[:,0:89].T))
+    bounds = np.where(np.diff(np.argmax(ev.segments_[0], axis=1)))[0]
+    ax = plt.gca()
+    bounds_aug = np.concatenate(([0],bounds,[nTR]))
+    for i in range(len(bounds_aug)-1):
+        rect1 = patches.Rectangle((bounds_aug[i],bounds_aug[i]),bounds_aug[i+1]-bounds_aug[i],bounds_aug[i+1]-bounds_aug[i],linewidth=3,edgecolor='w',facecolor='none',label='Model Fit')
+        ax.add_patch(rect1)
+    plt.title('HMM Fit to A1 SRM K = ' + str(srm_k),fontsize=18,fontweight='bold')
+    plt.savefig('plots/St_Pauls SRM K = ' + str(srm_k))
+    ####
+
     # Compute correlations separated by w in time
     corrs = np.zeros(nTR-w)
     for t in range(nTR-w):
