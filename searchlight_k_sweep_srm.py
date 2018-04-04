@@ -14,14 +14,14 @@ song_bounds = np.array([0,90,270,449,538,672,851,1031,1255,1480,1614,1704,1839,2
 
 songs = ['St_Pauls_Suite', 'I_Love_Music', 'Moonlight_Sonata', 'Change_of_the_Guard','Waltz_of_Flowers','The_Bird', 'Island', 'Allegro_Moderato', 'Finlandia', 'Early_Summer', 'Capriccio_Espagnole', 'Symphony_Fantastique', 'Boogie_Stop_Shuffle', 'My_Favorite_Things', 'Blue_Monk','All_Blues']
 
-k_sweeper = [20]
+k_sweeper = [5]
 loo_idx = int(sys.argv[1])
 song_idx = int(sys.argv[2])
 subj = subjs[int(loo_idx)]
 print('Subj: ', subj)
 
 datadir = '/tigress/jamalw/MES/'
-mask_img = load_img(datadir + 'data/mask_nonan.nii.gz')
+mask_img = load_img('/tigress/jamalw/MES/data/a1plus_2mm.nii.gz')
 mask = mask_img.get_data()
 mask_reshape = np.reshape(mask,(91*109*91))
 
@@ -103,12 +103,13 @@ def HMM(X,K,loo_idx,song_idx,song_bounds):
     """
     
     w = 6
+    srm_k = 45
     nPerm = 1000
     within_across = np.zeros(nPerm+1)
     run1 = [X[i] for i in np.arange(0, int(len(X)/2))]
     run2 = [X[i] for i in np.arange(int(len(X)/2), len(X))]
     print('Building Model')
-    srm = SRM(n_iter=10, features=5)   
+    srm = SRM(n_iter=10, features=srm_k)   
     print('Training Model')
     srm.fit(run1)
     print('Testing Model')
@@ -122,6 +123,24 @@ def HMM(X,K,loo_idx,song_idx,song_bounds):
     ev = brainiak.eventseg.event.EventSegment(K)
     ev.fit(others[:,song_bounds[song_idx]:song_bounds[song_idx + 1]].T)
     events = np.argmax(ev.segments_[0],axis=1)
+
+    ####
+    # plot searchlights
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    shared_data = srm.transform(run2)
+    avg_response = sum(shared_data)/len(shared_data)
+    plt.figure(figsize=(10,10))
+    plt.imshow(np.corrcoef(avg_response[:,0:89].T))
+    bounds = np.where(np.diff(np.argmax(ev.segments_[0], axis=1)))[0]
+    ax = plt.gca()
+    bounds_aug = np.concatenate(([0],bounds,[nTR]))
+    for i in range(len(bounds_aug)-1):
+        rect1 = patches.Rectangle((bounds_aug[i],bounds_aug[i]),bounds_aug[i+1]-bounds_aug[i],bounds_aug[i+1]-bounds_aug[i],linewidth=3,edgecolor='w',facecolor='none',label='Model Fit')
+        ax.add_patch(rect1)
+    plt.title('HMM Fit to A1 SRM K = ' + str(srm_k),fontsize=18,fontweight='bold')
+    plt.savefig('plots/St_Pauls SRM K = ' + str(srm_k))
+    ####
 
     # Compute correlations separated by w in time
     corrs = np.zeros(nTR-w)
