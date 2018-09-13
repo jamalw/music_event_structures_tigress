@@ -16,6 +16,7 @@ for i in range(len(k)):
         datadir = '/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[j] + '/zscores/full_brain/' 
         fn = datadir + 'globals_K_zscores_' + str(k[i]) + '.npy'
         data = np.load(fn)
+        data[np.isnan(data)] = 0
         avg_data[:,:,:] += data/(len(songs))
     maxval = np.max(avg_data[~np.isnan(avg_data)])
     minval = np.min(avg_data[~np.isnan(avg_data)])
@@ -34,6 +35,7 @@ for i in range(len(k)):
         datadir = '/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[j] + '/real/full_brain/' 
         fn = datadir + 'globals_K_raw_' + str(k[i]) + '.npy'
         data = np.load(fn)
+        data[np.isnan(data)] = 0
         avg_data[:,:,:] += data/(len(songs))
     maxval = np.max(avg_data[~np.isnan(avg_data)])
     minval = np.min(avg_data[~np.isnan(avg_data)])
