@@ -147,6 +147,8 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
 
 for i in range(n_folds):
     # create coords matrix
+    results3d = np.zeros((91,109,91))
+    results3d_real = np.zeros((91,109,91))
     #results3d_perms = np.zeros((91,109,91,1001))
     x,y,z = np.mgrid[[slice(dm) for dm in tuple((91,109,91))]]
     x = np.reshape(x,(x.shape[0]*x.shape[1]*x.shape[2]))
@@ -161,7 +163,9 @@ for i in range(n_folds):
     print('Running Distribute...')
     vox_z,raw_wVa_scores = searchlight(coords_mask,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k) 
     # store and average raw scores, z-scores, and permutations
+    results3d[mask>0] = vox_z[:,0]
     results_z[:,:,:] += results3d/n_folds
+    results3d_real[mask>0] = raw_wVa_scores[:,0]
     results_real[:,:,:] += results3d_real/n_folds
     #for j in range(vox_z.shape[1]):
     #    results3d_perms[mask>0,j] = vox_z[:,j]
@@ -169,6 +173,6 @@ for i in range(n_folds):
 
 # save results 
 print('Saving to Searchlight Folders')
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds), results_real)
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds), results_z)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds), results_real)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds), results_z)
 #np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[song_idx] +'/perms/full_brain/globals_K_perms_' + str(K) + '_reps_' + str(n_folds), results_perms)
