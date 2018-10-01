@@ -116,8 +116,8 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     print('Testing Model')
     shared_data = srm.transform(run2)
     shared_data = stats.zscore(np.dstack(shared_data),axis=1,ddof=1)
-    others = np.mean(shared_data[:,song_bounds[song_idx]+hrf:song_bounds[song_idx + 1]+hrf,:13],axis=2)
-    loo = np.mean(shared_data[:,song_bounds[song_idx]+hrf:song_bounds[song_idx + 1]+hrf,13:],axis=2) 
+    others = np.mean(shared_data[:,song_bounds[song_idx]:song_bounds[song_idx + 1],:13],axis=2)
+    loo = np.mean(shared_data[:,song_bounds[song_idx]:song_bounds[song_idx + 1],13:],axis=2) 
     nTR = loo.shape[1]
 
     # Fit to all but one subject
@@ -173,6 +173,6 @@ for i in range(n_folds):
 
 # save results 
 print('Saving to Searchlight Folders')
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds), results_real)
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds), results_z)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds) + '_srm_k_' + str(srm_k) , results_real)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds) + '_srm_k_' + str(srm_k), results_z)
 #np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[song_idx] +'/perms/full_brain/globals_K_perms_' + str(K) + '_reps_' + str(n_folds), results_perms)
