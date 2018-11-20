@@ -110,7 +110,6 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
        wVa score: final score after performing cross-validation of leftout subjects      
     """
     
-    w = 6
     nPerm = 1000
     within_across = np.zeros(nPerm+1)
     run1 = [X[i] for i in np.arange(0, int(len(X)/2))]
@@ -131,16 +130,21 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     ev = brainiak.eventseg.event.EventSegment(K)
     ev.fit(others.T)
     events = np.argmax(ev.segments_[0],axis=1)
+    max_event_length = stats.mode(events)[1][0]
+    
+    # compute timepoint by timepoint correlation matrix 
+    cc = np.corrcoef(loo.T) # Should be a time by time correlation matrix
 
-    # Compute correlations separated by w in time
-    corrs = np.zeros(nTR-w)
-    for t in range(nTR-w):
-        corrs[t] = pearsonr(loo[:,t],loo[:,t+w])[0]
+    # Create a mask to only look at values up to max_event_length
+    local_mask = np.zeros(cc.shape, dtype=bool)
+    for k in range(max_event_length):
+        local_mask[np.diag(np.ones(cc.shape[0]-k, dtype=bool), k)] = True
 
     # Compute within vs across boundary correlations, for real and permuted bounds
     for p in range(nPerm+1):
-        within = corrs[events[:-w] == events[w:]].mean()
-        across = corrs[events[:-w] != events[w:]].mean()
+        same_event = events[:,np.newaxis] == events
+        within = cc[same_event*local_mask].mean()
+        across = cc[(~same_event)*local_mask].mean()
         within_across[p] = within - across
 
         np.random.seed(p)
