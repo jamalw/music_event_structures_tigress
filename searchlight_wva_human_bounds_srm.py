@@ -7,6 +7,7 @@ from brainiak.funcalign.srm import SRM
 import nibabel as nib
 import os
 from scipy.spatial import distance
+from sklearn import linear_model
 
 subjs = ['MES_022817_0','MES_030217_0','MES_032117_1','MES_040217_0','MES_041117_0','MES_041217_0','MES_041317_0','MES_041417_0','MES_041517_0','MES_042017_0','MES_042317_0','MES_042717_0','MES_050317_0','MES_051317_0','MES_051917_0','MES_052017_0','MES_052017_1','MES_052317_0','MES_052517_0','MES_052617_0','MES_052817_0','MES_052817_1','MES_053117_0','MES_060117_0','MES_060117_1']
 
@@ -21,7 +22,7 @@ songs = ['Finlandia', 'Blue_Monk', 'I_Love_Music','Waltz_of_Flowers','Capriccio_
 #songs = ['St_Pauls_Suite', 'I_Love_Music', 'Moonlight_Sonata', 'Change_of_the_Guard','Waltz_of_Flowers','The_Bird', 'Island', 'Allegro_Moderato', 'Finlandia', 'Early_Summer', 'Capriccio_Espagnole', 'Symphony_Fantastique', 'Boogie_Stop_Shuffle', 'My_Favorite_Things', 'Blue_Monk','All_Blues']
 
 song_idx = int(sys.argv[1])
-n_folds = 15
+n_folds = 7
 hrf = 5
 srm_k = 30
 datadir = '/tigress/jamalw/MES/'
@@ -71,10 +72,19 @@ def searchlight(coords,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k):
                data = []
                for i in range(len(subjs)):
                    subj_data = np.load(datadir + subjs[i] + '/' + str(x) + '_' + str(y) + '_' + str(z) + '.npy')
-                   data.append(np.nan_to_num(stats.zscore(subj_data[:,:,0],axis=1,ddof=1)))
+                   subj_regs = np.genfromtxt(datadir + subjs[i] + '/EPI_mcf1.par')
+                   motion = subj_regs.T
+                   regr = linear_model.LinearRegression()
+                   regr.fit(motion[:,0:2511].T,subj_data[:,:,0].T)
+                   subj_data1 = subj_data[:,:,0] - np.dot(regr.coef_, motion[:,0:2511]) - regr.intercept_[:, np.newaxis]
+                   data.append(np.nan_to_num(stats.zscore(subj_data1,axis=1,ddof=1)))
                for i in range(len(subjs)):
-                   subj_data = np.load(datadir + subjs[i] + '/' + str(x) + '_' + str(y) + '_' + str(z) + '.npy')
-                   data.append(np.nan_to_num(stats.zscore(subj_data[:,:,1],axis=1,ddof=1))) 
+                   subj_regs = np.genfromtxt(datadir + subjs[i] + '/EPI_mcf2.par')
+                   motion = subj_regs.T
+                   regr = linear_model.LinearRegression()
+                   regr.fit(motion[:,0:2511].T,subj_data[:,:,1].T)
+                   subj_data2 = subj_data[:,:,1] - np.dot(regr.coef_, motion[:,0:2511]) - regr.intercept_[:, np.newaxis]
+                   data.append(np.nan_to_num(stats.zscore(subj_data2,axis=1,ddof=1))) 
                print("Running Searchlight")
                # only run function on searchlights with #of voxels greater than or equal to min_vox
                if data[0].shape[0] >= min_vox:
@@ -177,9 +187,9 @@ for i in range(n_folds):
     for j in range(vox_z.shape[1]):
         results3d_perms[mask>0,j] = vox_z[:,j]
     results_perms_avg[:,:,:,:] += results3d_perms/n_folds
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/perms/full_brain/globals_perms_train_run2_rep' + str(i+1), results_perms_avg)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/perms/full_brain/globals_perms_train_run2_rep' + str(i+1) + '_fixed_win_6', results_perms_avg)
 
 # save results 
 print('Saving to Searchlight Folders')
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run2_reps_' + str(n_folds) + '_srm_k' + str(srm_k) , results_real)
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run2_reps_' + str(n_folds) + '_srm_k' + str(srm_k), results_z)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run2_reps_' + str(n_folds) + '_srm_k' + str(srm_k) + '_fixed_win_6', results_real)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run2_reps_' + str(n_folds) + '_srm_k' + str(srm_k) + '_fixed_win_6', results_z)
