@@ -23,11 +23,11 @@ song_bounds = np.array([0,90,270,449,538,672,851,1031,1255,1480,1614,1704,1839,2
 songs = ['St_Pauls_Suite', 'I_Love_Music', 'Moonlight_Sonata', 'Change_of_the_Guard','Waltz_of_Flowers','The_Bird', 'Island', 'Allegro_Moderato', 'Finlandia', 'Early_Summer', 'Capriccio_Espagnole', 'Symphony_Fantastique', 'Boogie_Stop_Shuffle', 'My_Favorite_Things', 'Blue_Monk','All_Blues']
 
 song_idx = int(sys.argv[1])
-n_folds = 15
+n_folds = 7
 hrf = 5
 srm_k = 30
 datadir = '/tigress/jamalw/MES/'
-mask_img = load_img(datadir + 'data/a1plus_2mm.nii.gz')
+mask_img = load_img(datadir + 'data/mask_nonan.nii.gz')
 mask = mask_img.get_data()
 mask_reshape = np.reshape(mask,(91*109*91))
 
@@ -78,14 +78,15 @@ def searchlight(coords,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k):
                    regr = linear_model.LinearRegression()
                    regr.fit(motion[:,0:2511].T,subj_data[:,:,0].T)
                    subj_data1 = subj_data[:,:,0] - np.dot(regr.coef_, motion[:,0:2511]) - regr.intercept_[:, np.newaxis]
-                   data.append(subj_data1)
+                   data.append(np.nan_to_num(stats.zscore(subj_data1,axis=1,ddof=1)))
                for i in range(len(subjs)):
+                   subj_data = np.load(datadir + subjs[i] + '/' + str(x) + '_' + str(y) + '_' + str(z) + '.npy')
                    subj_regs = np.genfromtxt(datadir + subjs[i] + '/EPI_mcf2.par')
                    motion = subj_regs.T
                    regr = linear_model.LinearRegression()
                    regr.fit(motion[:,0:2511].T,subj_data[:,:,1].T)
                    subj_data2 = subj_data[:,:,1] - np.dot(regr.coef_, motion[:,0:2511]) - regr.intercept_[:, np.newaxis]
-                   data.append(subj_data2) 
+                   data.append(np.nan_to_num(stats.zscore(subj_data2,axis=1,ddof=1))) 
                print("Running Searchlight")
                # only run function on searchlights with #of voxels greater than or equal to min_vox
                if data[0].shape[0] >= min_vox:
@@ -192,9 +193,9 @@ for i in range(n_folds):
     for j in range(vox_z.shape[1]):
         results3d_perms[mask>0,j] = vox_z[:,j]
     results_perms_avg[:,:,:,:] += results3d_perms/n_folds
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/perms/full_brain/globals_perms_train_run1_rep' + str(i+1), results_perms_avg)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/perms/full_brain/globals_perms_train_run1_rep' + str(i+1) + '_no_motion', results_perms_avg)
 
 # save results 
 print('Saving to Searchlight Folders')
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds) + '_srm_k' + str(srm_k) , results_real)
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds) + '_srm_k' + str(srm_k), results_z)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds) + '_srm_k' + str(srm_k) + '_no_motion', results_real)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds) + '_srm_k' + str(srm_k) + '_no_motion', results_z)
