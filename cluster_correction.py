@@ -35,8 +35,8 @@ thresh = sorted_max_cluster[int(len(sorted_max_cluster)*0.90)]
 # run clustering on real pvals[:,:,:,0] to get image, larray, cluster_sizes
 # use z=1.28 for p < 0.1 and use z=1.96 for p < 0.05
 image = pvals.copy()[:,:,:,0]
-image[pvals[:,:,:,0] > 0.1] = 0
-image[pvals[:,:,:,0] <= 0.1] = 1
+image[pvals[:,:,:,0] < 0.1] = 0
+image[pvals[:,:,:,0] >= 0.1] = 1
 larray, nf = label(image,s)
 cluster_sizes = np.unique(larray[larray>0], return_counts=True)[1]
 
