@@ -16,8 +16,8 @@ for i in range(0,1000):
     print("Copying Data")
     image = pvals.copy()[:,:,:,i+1]
     # use z = 1.96 for p < 0.05 and z = 1.28 for p < 0.1
-    image[pvals[:,:,:,i+1] < 0.1] = 0
-    image[pvals[:,:,:,i+1] >= 0.1] = 1
+    image[pvals[:,:,:,i+1] > 0.05] = 0
+    image[pvals[:,:,:,i+1] <= 0.05] = 1
     larray, nf = label(image,s)
     cluster_sizes = np.unique(larray[larray>0], return_counts=True)[1]
 
@@ -30,13 +30,13 @@ for i in range(0,1000):
 
 sorted_max_cluster = np.sort(max_cluster)
 # use confidence interval of .95 for p < 0.05 and .90 for p < 0.1
-thresh = sorted_max_cluster[int(len(sorted_max_cluster)*0.90)]
+thresh = sorted_max_cluster[int(len(sorted_max_cluster)*0.95)]
 
 # run clustering on real pvals[:,:,:,0] to get image, larray, cluster_sizes
 # use z=1.28 for p < 0.1 and use z=1.96 for p < 0.05
 image = pvals.copy()[:,:,:,0]
-image[pvals[:,:,:,0] < 0.1] = 0
-image[pvals[:,:,:,0] >= 0.1] = 1
+image[pvals[:,:,:,0] > 0.05] = 0
+image[pvals[:,:,:,0] <= 0.05] = 1
 larray, nf = label(image,s)
 cluster_sizes = np.unique(larray[larray>0], return_counts=True)[1]
 
