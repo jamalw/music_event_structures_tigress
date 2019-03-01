@@ -2,7 +2,7 @@ import numpy as np
 from scipy import special
 import scipy.stats as st
 
-datadir = '/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/'
+datadir = '/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/'
 
 filename = 'avg_perms_both_runs_across_songs.npy'
 
