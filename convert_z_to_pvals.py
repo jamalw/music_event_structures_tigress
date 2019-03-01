@@ -1,7 +1,5 @@
 import numpy as np
 from scipy import special
-import nibabel as nib
-import sys
 import scipy.stats as st
 
 datadir = '/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/'
