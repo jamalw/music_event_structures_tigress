@@ -166,7 +166,6 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         random.shuffle(event_lengths)
         unique_events = np.unique(events)
         events = np.concatenate([np.repeat(i,event_lengths[i]) for i in unique_events])
-        x = 10 
     print((within_across[0] - np.mean(within_across[1:]))/np.std(within_across[1:]))
     return within_across
 
