@@ -9,6 +9,8 @@ import os
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
 from sklearn import linear_model
+from collections import Counter
+import random
 
 subjs = ['MES_022817_0','MES_030217_0','MES_032117_1','MES_040217_0','MES_041117_0','MES_041217_0','MES_041317_0','MES_041417_0','MES_041517_0','MES_042017_0','MES_042317_0','MES_042717_0','MES_050317_0','MES_051317_0','MES_051917_0','MES_052017_0','MES_052017_1','MES_052317_0','MES_052517_0','MES_052617_0','MES_052817_0','MES_052817_1','MES_053117_0','MES_060117_0','MES_060117_1']
 
@@ -159,10 +161,12 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         across = cc[(~same_event)*local_mask].mean()
         within_across[p] = within - across
 
-        np.random.seed(p)
-        events = np.zeros(nTR, dtype=np.int)
-        events[np.random.choice(nTR,K-1,replace=False)] = 1
-        events = np.cumsum(events)
+        random.seed(p)        
+        event_lengths = Counter(events)
+        random.shuffle(event_lengths)
+        unique_events = np.unique(events)
+        events = np.concatenate([np.repeat(i,event_lengths[i]) for i in unique_events])
+        x = 10 
     print((within_across[0] - np.mean(within_across[1:]))/np.std(within_across[1:]))
     return within_across
 
