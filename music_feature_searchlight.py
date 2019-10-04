@@ -290,7 +290,7 @@ def RSA(X,song_features,song_idx,song_bounds,srm_k,hrf):
         song_features = phase_randomize(song_features.T, voxelwise=False, random_state=p).T
         songCorr = np.corrcoef(song_features.T)
         songVec = squareform(songCorr, checks=False)
-        x=10
+    
     return rsa_scores
 
 
