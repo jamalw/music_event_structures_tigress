@@ -14,7 +14,7 @@ from scipy.fftpack import fft, ifft
 
 logger = logging.getLogger(__name__)
 
-datadir = '/jukebox/norman/jamalw/MES/'
+datadir = '/tigress/jamalw/MES/'
 
 subjs = ['MES_022817_0','MES_030217_0','MES_032117_1','MES_040217_0','MES_041117_0','MES_041217_0','MES_041317_0','MES_041417_0','MES_041517_0','MES_042017_0','MES_042317_0','MES_042717_0','MES_050317_0','MES_051317_0','MES_051917_0','MES_052017_0','MES_052017_1','MES_052317_0','MES_052517_0','MES_052617_0','MES_052817_0','MES_052817_1','MES_053117_0','MES_060117_0','MES_060117_1']
 
@@ -199,7 +199,7 @@ def searchlight(coords,song_features,mask,subjs,song_idx,song_bounds,srm_k,hrf):
     nPerm = 1000
     SL_allvox = []
     SL_results = []
-    datadir = '/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_input/'
+    datadir = '/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_input/'
     for x in range(0,np.max(coords, axis=0)[0]+stride,stride):
         for y in range(0,np.max(coords, axis=0)[1]+stride,stride):
            for z in range(0,np.max(coords, axis=0)[2]+stride,stride):
@@ -275,21 +275,21 @@ def RSA(X,song_features,song_idx,song_bounds,srm_k,hrf):
     data = np.mean(shared_data[:,song_bounds[song_idx]:song_bounds[song_idx + 1]],axis=2)
     
     song_features = song_features[:,song_bounds[song_idx]:song_bounds[song_idx + 1]]
-
-    rsa_scores = np.zeros(nPerm+1)
-    perm_features = song_features.copy()
- 
     songCorr = np.corrcoef(song_features.T)
     songVec = squareform(songCorr, checks=False)
+
+    rsa_scores = np.zeros(nPerm+1)
+ 
     voxCorr = np.corrcoef(data.T)
     voxVec = squareform(voxCorr,checks=False)
+    perm_features = data.copy()    
  
     for p in range(nPerm+1):
         spearmanCorr = stats.spearmanr(voxVec,songVec,nan_policy='omit')
         rsa_scores[p] = spearmanCorr[0]
-        song_features = phase_randomize(song_features.T, voxelwise=False, random_state=p).T
-        songCorr = np.corrcoef(song_features.T)
-        songVec = squareform(songCorr, checks=False)
+        vox_features = phase_randomize(perm_features.T, voxelwise=False, random_state=p).T
+        voxCorr = np.corrcoef(vox_features.T)
+        voxVec = squareform(voxCorr, checks=False)
     
     return rsa_scores
 
@@ -315,8 +315,8 @@ for j in range(voxmean.shape[1]):
  
 print('Saving data to Searchlight Folder')
 print(songs[song_idx])
-np.save('/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_output/music_features/' + songs[song_idx] +'/chroma/raw/globals_raw_srm_k_' + str(srm_k) + '_fit_run1', results3d_real)
-np.save('/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_output/music_features/' + songs[song_idx] +'/chroma/zscores/globals_z_srm_k' + str(srm_k) + '_fit_run1', results3d)
-np.save('/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_output/music_features/' + songs[song_idx] +'/chroma/perms/globals_z_srm_k' + str(srm_k) + '_fit_run1', results3d_perms)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/music_features/' + songs[song_idx] +'/chroma/raw/globals_raw_srm_k_' + str(srm_k) + '_fit_run1_psVox', results3d_real)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/music_features/' + songs[song_idx] +'/chroma/zscores/globals_z_srm_k' + str(srm_k) + '_fit_run1_psVox', results3d)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/music_features/' + songs[song_idx] +'/chroma/perms/globals_z_srm_k' + str(srm_k) + '_fit_run1_psVox', results3d_perms)
 
 
