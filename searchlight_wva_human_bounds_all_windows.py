@@ -143,7 +143,6 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     ev.fit(others.T)
     events = np.argmax(ev.segments_[0],axis=1)
     max_event_length = stats.mode(events)[1][0]
-    _, event_lengths = np.unique(events, return_counts=True)   
  
     # compute timepoint by timepoint correlation matrix 
     cc = np.corrcoef(loo.T) # Should be a time by time correlation matrix
@@ -161,9 +160,8 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         within_across[p] = within - across
         
         np.random.seed(p)
-        perm_lengths = np.random.permutation(event_lengths)
         events = np.zeros(nTR, dtype=np.int)
-        events[np.cumsum(perm_lengths[:-1])] = 1
+        events[np.random.choice(nTR,K-1,replace=False)] = 1
         events = np.cumsum(events)
  
     print((within_across[0] - np.mean(within_across[1:]))/np.std(within_across[1:]))
