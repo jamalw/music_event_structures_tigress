@@ -13,14 +13,14 @@ from sklearn import linear_model
 subjs = ['MES_022817_0','MES_030217_0','MES_032117_1','MES_040217_0','MES_041117_0','MES_041217_0','MES_041317_0','MES_041417_0','MES_041517_0','MES_042017_0','MES_042317_0','MES_042717_0','MES_050317_0','MES_051317_0','MES_051917_0','MES_052017_0','MES_052017_1','MES_052317_0','MES_052517_0','MES_052617_0','MES_052817_0','MES_052817_1','MES_053117_0','MES_060117_0','MES_060117_1']
 
 #run 1 times
-#song_bounds = np.array([0,225,314,494,628,718,898,1032,1122,1301,1436,1660,1749,1973, 2198,2377,2511])
+song_bounds = np.array([0,225,314,494,628,718,898,1032,1122,1301,1436,1660,1749,1973, 2198,2377,2511])
 
-#songs = ['Finlandia', 'Blue_Monk', 'I_Love_Music','Waltz_of_Flowers','Capriccio_Espagnole','Island','All_Blues','St_Pauls_Suite','Moonlight_Sonata','Symphony_Fantastique','Allegro_Moderato','Change_of_the_Guard','Boogie_Stop_Shuffle','My_Favorite_Things','The_Bird','Early_Summer']
+songs = ['Finlandia', 'Blue_Monk', 'I_Love_Music','Waltz_of_Flowers','Capriccio_Espagnole','Island','All_Blues','St_Pauls_Suite','Moonlight_Sonata','Symphony_Fantastique','Allegro_Moderato','Change_of_the_Guard','Boogie_Stop_Shuffle','My_Favorite_Things','The_Bird','Early_Summer']
 
 # run 2 times
-song_bounds = np.array([0,90,270,449,538,672,851,1031,1255,1480,1614,1704,1839,2063,2288,2377,2511])
+#song_bounds = np.array([0,90,270,449,538,672,851,1031,1255,1480,1614,1704,1839,2063,2288,2377,2511])
 
-songs = ['St_Pauls_Suite', 'I_Love_Music', 'Moonlight_Sonata', 'Change_of_the_Guard','Waltz_of_Flowers','The_Bird', 'Island', 'Allegro_Moderato', 'Finlandia', 'Early_Summer', 'Capriccio_Espagnole', 'Symphony_Fantastique', 'Boogie_Stop_Shuffle', 'My_Favorite_Things', 'Blue_Monk','All_Blues']
+#songs = ['St_Pauls_Suite', 'I_Love_Music', 'Moonlight_Sonata', 'Change_of_the_Guard','Waltz_of_Flowers','The_Bird', 'Island', 'Allegro_Moderato', 'Finlandia', 'Early_Summer', 'Capriccio_Espagnole', 'Symphony_Fantastique', 'Boogie_Stop_Shuffle', 'My_Favorite_Things', 'Blue_Monk','All_Blues']
 
 song_idx = int(sys.argv[1])
 n_folds = 7
@@ -63,9 +63,9 @@ def searchlight(coords,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k):
     SL_allvox = []
     SL_results = []
     datadir = '/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_input/'
-    for x in range(0,np.max(coords, axis=0)[0]+stride,stride):
-        for y in range(0,np.max(coords, axis=0)[1]+stride,stride):
-           for z in range(0,np.max(coords, axis=0)[2]+stride,stride):
+    for x in [40]:
+        for y in [20]:
+           for z in [35]:
                if not os.path.isfile(datadir + subjs[0] + '/' + str(x) + '_' + str(y) + '_' + str(z) + '.npy'):
                    continue
                D = distance.cdist(coords,np.array([x,y,z]).reshape((1,3)))[:,0]
@@ -129,9 +129,9 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     print('Building Model')
     srm = SRM(n_iter=10, features=srm_k)   
     print('Training Model')
-    srm.fit(run1)
+    srm.fit(run2)
     print('Testing Model')
-    shared_data = srm.transform(run2)
+    shared_data = srm.transform(run1)
     shared_data = stats.zscore(np.dstack(shared_data),axis=1,ddof=1)
     others = np.mean(shared_data[:,song_bounds[song_idx]:song_bounds[song_idx + 1],:13],axis=2)
     loo = np.mean(shared_data[:,song_bounds[song_idx]:song_bounds[song_idx + 1],13:],axis=2) 
@@ -158,13 +158,37 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         within = cc[same_event*local_mask].mean()
         across = cc[(~same_event)*local_mask].mean()
         within_across[p] = within - across
+
+        # compute average distance between within vs across correlations
+        real_within_dist = []
+        real_across_dist = []
+        perm_within_dist = []
+        perm_across_dist = []
+
+        within_bool = same_event * local_mask
+        across_bool = (~same_event * local_mask)
         
+        for r in range(within_bool.shape[0]):
+            within_true = np.where(within_bool[r,:] == True)
+            across_true = np.where(across_bool[r,:] == True)
+            within_distances = [i - within_true[0] for i in within_true[1:]]
+            across_distances = [i - across_true[0] for i in across_true[1:]]
+            if p == 0:    
+                # append real within distances if 0 and perm if > 0
+                real_within_dist.append(within_distances)
+                # append real across distances if 0 and perm if > 0
+                real_across_dist.append(across_distances)
+            if p > 0:    
+                # append real within distances if 0 and perm if > 0
+                perm_within_dist.append(within_distances)
+                # append real across distances if 0 and perm if > 0
+                perm_across_dist.append(across_distances)
+             
         np.random.seed(p)
         events = np.zeros(nTR, dtype=np.int)
         events[np.random.choice(nTR,K-1,replace=False)] = 1
         events = np.cumsum(events)
  
-    print((within_across[0] - np.mean(within_across[1:]))/np.std(within_across[1:]))
     return within_across
 
 
@@ -193,9 +217,9 @@ for i in range(n_folds):
     results_real[:,:,:] += results3d_real/n_folds
     for j in range(vox_z.shape[1]):
         results3d_perms[mask>0,j] = vox_z[:,j]
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/perms/full_brain/globals_perms_train_run1_rep' + str(i+1), results3d_perms)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_bound_locations/' + songs[song_idx] +'/perms/full_brain/globals_perms_train_run2_rep' + str(i+1), results3d_perms)
 
 # save results 
 print('Saving to Searchlight Folders')
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run1_reps_' + str(n_folds) + '_srm_k' + str(srm_k), results_real)
-np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run1_reps_' + str(n_folds) + '_srm_k' + str(srm_k), results_z)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_bound_locations/' + songs[song_idx] +'/real/full_brain/globals_K_raw_train_run2_reps_' + str(n_folds) + '_srm_k' + str(srm_k), results_real)
+np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_bound_locations/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_train_run2_reps_' + str(n_folds) + '_srm_k' + str(srm_k), results_z)
