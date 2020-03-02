@@ -142,6 +142,7 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     ev = brainiak.eventseg.event.EventSegment(K)
     ev.fit(others.T)
     events = np.argmax(ev.segments_[0],axis=1)
+    _, event_lengths = np.unique(events, return_counts=True)
     max_event_length = stats.mode(events)[1][0]
  
     # compute timepoint by timepoint correlation matrix 
@@ -185,8 +186,10 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
                 perm_across_dist.append(across_distances)
             
         np.random.seed(p)
+        _, event_lengths = np.unique(events, return_counts=True)
+        perm_lengths = np.random.permutation(event_lengths)
         events = np.zeros(nTR, dtype=np.int)
-        events[np.random.choice(nTR,K-1,replace=False)] = 1
+        events[np.cumsum(perm_lengths[:-1])] = 1
         events = np.cumsum(events)
 
     # flatten lists of distances
