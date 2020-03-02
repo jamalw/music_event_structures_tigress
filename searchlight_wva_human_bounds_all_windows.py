@@ -152,6 +152,11 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     for k in range(1,max_event_length):
         local_mask[np.diag(np.ones(cc.shape[0]-k, dtype=bool), k)] = True
 
+    real_within_dist = []
+    real_across_dist = []
+    perm_within_dist = []
+    perm_across_dist = []
+
     # Compute within vs across boundary correlations, for real and permuted bounds
     for p in range(nPerm+1):
         same_event = events[:,np.newaxis] == events
@@ -160,11 +165,6 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         within_across[p] = within - across
 
         # compute average distance between within vs across correlations
-        real_within_dist = []
-        real_across_dist = []
-        perm_within_dist = []
-        perm_across_dist = []
-
         within_bool = same_event * local_mask
         across_bool = (~same_event * local_mask)
         
