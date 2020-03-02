@@ -171,8 +171,8 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         for r in range(within_bool.shape[0]):
             within_true = np.where(within_bool[r,:] == True)
             across_true = np.where(across_bool[r,:] == True)
-            within_distances = [i - within_true[0] for i in within_true[1:]]
-            across_distances = [i - across_true[0] for i in across_true[1:]]
+            within_distances = [i - within_true[0][0] for i in within_true[0][1:]]
+            across_distances = [i - across_true[0][0] for i in across_true[0][1:]]
             if p == 0:    
                 # append real within distances if 0 and perm if > 0
                 real_within_dist.append(within_distances)
@@ -183,12 +183,18 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
                 perm_within_dist.append(within_distances)
                 # append real across distances if 0 and perm if > 0
                 perm_across_dist.append(across_distances)
-             
+            
         np.random.seed(p)
         events = np.zeros(nTR, dtype=np.int)
         events[np.random.choice(nTR,K-1,replace=False)] = 1
         events = np.cumsum(events)
- 
+
+    # flatten lists of distances
+    real_within_dist_flat = [item for sublist in real_within_dist for item in sublist]
+    real_across_dist_flat = [item for sublist in real_across_dist for item in sublist]
+    perm_within_dist_flat = [item for sublist in perm_within_dist for item in sublist]   
+    perm_across_dist_flat = [item for sublist in perm_across_dist for item in sublist]
+
     return within_across
 
 
