@@ -163,7 +163,7 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         within = cc[same_event*local_mask].mean()
         across = cc[(~same_event)*local_mask].mean()
         within_across[p] = within - across
-
+    ##################################################################################
         # compute average distance between within vs across correlations
         within_bool = same_event * local_mask
         across_bool = (~same_event * local_mask)
@@ -194,6 +194,18 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     real_across_dist_flat = [item for sublist in real_across_dist for item in sublist]
     perm_within_dist_flat = [item for sublist in perm_within_dist for item in sublist]   
     perm_across_dist_flat = [item for sublist in perm_across_dist for item in sublist]
+    
+    # get average of each distance
+    real_within_dist_avg = np.mean(real_within_dist_flat)
+    real_across_dist_avg = np.mean(real_across_dist_flat)
+    perm_within_dist_avg = np.mean(perm_within_dist_flat)
+    perm_across_dist_avg = np.mean(perm_across_dist_flat)
+
+    # compute difference between average WvA distances for real and null separately
+    real_diff = real_within_dist_avg - real_across_dist_avg
+    perm_diff = perm_within_dist_avg - perm_across_dist_avg 
+
+    ###################################################################################    
 
     return within_across
 
