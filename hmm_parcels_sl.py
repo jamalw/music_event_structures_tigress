@@ -22,7 +22,7 @@ def save_nifti(data,affine,savedir):
     img.header.set_data_dtype(np.float64)
     nib.save(img, savedir)
  
-def HMM(X,human_bounds):
+def HMM(X,Y,human_bounds):
 
     """fit hidden markov model
   
@@ -44,39 +44,37 @@ def HMM(X,human_bounds):
 
     # Fit to all but one subject
     nPerm=1000
-    w = 3
+    within_across = np.zeros(nPerm + 1)
     K = len(human_bounds) + 1
+    nTR = X.shape[1]
     ev = brainiak.eventseg.event.EventSegment(K)
     ev.fit(X.T)
-    bounds = np.where(np.diff(np.argmax(ev.segments_[0],axis=1)))[0]
-    match = np.zeros(nPerm+1)
     events = np.argmax(ev.segments_[0],axis=1)
-    _, event_lengths = np.unique(events, return_counts=True)
-    perm_bounds = bounds.copy()
-    nTR = X.shape[1] 
+    max_event_length = stats.mode(events)[1][0]
+
+    # compute timepoint by timepoint correlation matrix
+    cc = np.corrcoef(Y.T) # Should be a time by time correlation matrix
+
+    # Create a mask to only look at values up to max_event_length
+    local_mask = np.zeros(cc.shape, dtype=bool)
+    for k in range(1,max_event_length):
+        local_mask[np.diag(np.ones(cc.shape[0]-k, dtype=bool), k)] = True
 
     for p in range(nPerm+1):
         #match[p] = sum([np.min(np.abs(perm_bounds - hb)) for hb in human_bounds])
         #match[p] = np.sqrt(sum([np.min((perm_bounds - hb)**2) for hb in human_bounds]))
-        for hb in human_bounds:
-            if np.any(np.abs(perm_bounds - hb) <= w):
-                match[p] += 1
-        match[p] /= len(human_bounds)
- 
-        np.random.seed(p)
-        perm_lengths = np.random.permutation(event_lengths)
-        events = np.zeros(nTR, dtype=np.int)
-        events[np.cumsum(perm_lengths[:-1])] = 1
-        # pick number of timepoints to rotate by  
-        nrot = np.random.randint(len(events))
-        # convert events to list to allow combining lists in next step
-        events_lst = list(events)
-        # rotate boundaries
-        events_rot = np.array(events_lst[-nrot:] + events_lst[:-nrot])
-        # select indexes for new boundaries
-        perm_bounds = np.where(events_rot == 1)[0]
+         
+        same_event = events[:,np.newaxis] == events
+        within = cc[same_event*local_mask].mean()
+        across = cc[(~same_event)*local_mask].mean()
+        within_across[p] = within - across
 
-    return match
+        np.random.seed(p)
+        events = np.zeros(nTR, dtype=np.int)
+        events[np.random.choice(nTR,K-1,replace=False)] = 1
+        events = np.cumsum(events)
+
+    return within_across
 
 hrf = 4
 
@@ -118,6 +116,9 @@ parcels = nib.load(datadir + "data/CBIG/stable_projects/brain_parcellation/Schae
 
 parcel_dir = datadir + "prototype/link/scripts/data/searchlight_input/parcels/Schaefer200/"
 
+n_folds = 5
+WvA = np.zeros((n_folds,1001))
+
 for i in range(int(np.max(parcels))):
     print("Parcel Num: ", str(i+1))
     # get indices where mask and parcels overlap
@@ -133,18 +134,27 @@ for i in range(int(np.max(parcels))):
     elif runNum == 1:
         shared_data = SRM_V1(run2,run1,srm_k,n_iter)
 
-    # get song data from each run
-    data = shared_data[:,start_idx:end_idx]
+    # perform cross-validation style HMM for n_folds
+    for n in range(n_folds):
+        np.random.seed(n)
+        subj_list_shuffle = np.random.permutation(shared_data) 
 
-    # average song data between two runs
-    data = (data_run1 + data_run2) / 2
+        # convert data from list to numpy array and z-score in time
+        shared_data_stack = stats.zscore(np.dstack(subj_list_shuffle),axis=1,ddof=1)
 
-    # fit HMM to song data and return match data where first entry is true match score and all others are permutation scores
-    print("Fitting HMM")
-    SL_match = HMM(data,human_bounds)
-   
+        # split subjects into two groups
+        others = np.mean(shared_data_stack[:,start_idx:end_idx,:13],axis=2)    
+        loo = np.mean(shared_data_stack[:,start_idx:end_idx,13:],axis=2)
+
+        # fit HMM to song data and return match data where first entry is true match score and all others are permutation scores
+        print("Fitting HMM")
+        WvA[n,:] = HMM(others,loo,human_bounds)
+
+    # take average of WvA scores over folds
+    avgWvA = np.mean(WvA,axis=0)
+         
     # compute z-score
-    match_z = (SL_match[0] - np.mean(SL_match[1:])) / (np.std(SL_match[1:]))
+    match_z = (avgWvA[0] - np.mean(avgWvA[1:])) / (np.std(avgWvA[1:]))
     
     # convert z-score to p-value
     match_p =  st.norm.sf(match_z)
@@ -156,10 +166,10 @@ for i in range(int(np.max(parcels))):
     pvals[indices] = match_p  
     match[indices] = match_z 
 
-savedir = "/jukebox/norman/jamalw/MES/prototype/link/scripts/data/searchlight_output/parcels/Schaefer200/" + song_name
+savedir = "/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/parcels/Schaefer200/" + song_name
 
-pfn = savedir + "/pvals_srm_v3"
-mfn = savedir + "/match_scores_srm_v3"
+pfn = savedir + "/pvals_srm_v1"
+mfn = savedir + "/match_scores_srm_v1"
 
 save_nifti(pvals, mask_img.affine, pfn) 
 save_nifti(match, mask_img.affine, mfn)
