@@ -110,10 +110,12 @@ human_bounds = np.load(datadir + 'prototype/link/scripts/data/beh/annotations/' 
 parcels = nib.load(datadir + "data/CBIG/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_100Parcels_17Networks_order_FSLMNI152_2mm.nii.gz").get_data()
 
 # create brain-like object to store data into
-#pvals = np.zeros_like(mask_img.get_data(),dtype=float)
-#match = np.zeros_like(mask_img.get_data())
+pvals = np.zeros_like(mask_img.get_data(),dtype=float)
+match = np.zeros_like(mask_img.get_data())
 
 parcel_dir = datadir + "prototype/link/scripts/data/searchlight_input/parcels/Schaefer100/"
+
+savedir = datadir + "prototype/link/scripts/data/searchlight_output/parcels/Schaefer100/" + songs[idx]
 
 n_folds = 5
 WvA = np.zeros((n_folds,1001))
@@ -164,8 +166,6 @@ for i in range(int(np.max(parcels))):
     # fit wva score and pvalue into brain
     pvals[indices] = match_p  
     match[indices] = match_z 
-
-savedir = "/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/parcels/Schaefer100/" + song_name
 
 if  runNum == 0:
     pfn = savedir + "/pvals_srm_v1_test_run2"
