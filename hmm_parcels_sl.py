@@ -76,7 +76,6 @@ def HMM(X,Y,human_bounds):
 
     return within_across
 
-hrf = 4
 
 if runNum == 0:
     # run 1 times
@@ -106,15 +105,15 @@ n_iter = 50
 srm_k = 30
 
 # load human boundaries
-human_bounds = np.load(datadir + 'prototype/link/scripts/data/searchlight_output/HMM_searchlight_K_sweep_srm/' + songs[idx] + '/' + songs[idx] + '_beh_seg.npy') + hrf
+human_bounds = np.load(datadir + 'prototype/link/scripts/data/beh/annotations/' + songs[idx] + '_beh_seg.npy')
 
-parcels = nib.load(datadir + "data/CBIG/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_200Parcels_17Networks_order_FSLMNI152_2mm.nii.gz").get_data()
+parcels = nib.load(datadir + "data/CBIG/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_100Parcels_17Networks_order_FSLMNI152_2mm.nii.gz").get_data()
 
 # create brain-like object to store data into
 #pvals = np.zeros_like(mask_img.get_data(),dtype=float)
 #match = np.zeros_like(mask_img.get_data())
 
-parcel_dir = datadir + "prototype/link/scripts/data/searchlight_input/parcels/Schaefer200/"
+parcel_dir = datadir + "prototype/link/scripts/data/searchlight_input/parcels/Schaefer100/"
 
 n_folds = 5
 WvA = np.zeros((n_folds,1001))
@@ -162,14 +161,18 @@ for i in range(int(np.max(parcels))):
     # compute p-value
     #match_p = (np.sum(SL_match[1:] <= SL_match[0]) + 1) / (len(SL_match))
 
-    # fit match score and pvalue into brain
+    # fit wva score and pvalue into brain
     pvals[indices] = match_p  
     match[indices] = match_z 
 
-savedir = "/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/parcels/Schaefer200/" + song_name
+savedir = "/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/parcels/Schaefer100/" + song_name
 
-pfn = savedir + "/pvals_srm_v1"
-mfn = savedir + "/match_scores_srm_v1"
+if  runNum == 0:
+    pfn = savedir + "/pvals_srm_v1_test_run2"
+    mfn = savedir + "/match_scores_srm_v1_test_run2"
+elif runNum == 1:
+    pfn = savedir + "/pvals_srm_v1_test_run1"
+    mfn = savedir + "/match_scores_srm_v1_test_run1"
 
 save_nifti(pvals, mask_img.affine, pfn) 
 save_nifti(match, mask_img.affine, mfn)
