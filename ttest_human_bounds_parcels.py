@@ -10,7 +10,10 @@ parcels = nib.load("/tigress/jamalw/MES/data/CBIG/stable_projects/brain_parcella
 mask = nib.load('/tigress/jamalw/MES/data/mask_nonan.nii')
 
 # Schaefer 100 DMN and Auditory
-parcel_idx = np.concatenate([np.arange(10,13),np.arange(38,50),np.arange(61,64),np.arange(89,98)])
+#parcel_idx = np.concatenate([np.arange(10,13),np.arange(38,50),np.arange(61,64),np.arange(89,98)])
+
+# Schaefer 100 All
+parcel_idx = np.arange(1,101)
 
 #Schaefer 200 DMN and Auditory
 #parcel_idx = np.concatenate([np.arange(21,27),np.arange(75,99),np.arange(124,130),np.arange(184,197)])
@@ -48,7 +51,7 @@ z_single_stack = np.hstack(z_single)
 single_indices = np.array((x_single_stack,y_single_stack,z_single_stack)) 
 
 mask_reshaped = np.reshape(mask.get_data(),(91*109*91))
-tmap_final3D = np.zeros_like(mask.get_data())
+tmap_final3D = np.zeros_like(mask.get_data(),dtype=float)
 pmap_final3D = np.zeros_like(mask.get_data(),dtype=float)
 qmap_final3D = np.zeros_like(mask.get_data(),dtype=float)
 
@@ -126,25 +129,25 @@ minval = np.min(tmap_final3D)
 img = nib.Nifti1Image(tmap_final3D, affine=mask.affine)
 img.header['cal_min'] = minval
 img.header['cal_max'] = maxval
-nib.save(img,datadir + 'ttest_results/tstats_map_both_runs_srm_v1_FDR_fix.nii.gz')
+nib.save(img,datadir + 'ttest_results/tstats_map_both_runs_srm_v1_all_100.nii.gz')
 
 maxval = np.max(pmap_final3D)
 minval = np.min(pmap_final3D)
 img = nib.Nifti1Image(pmap_final3D, affine=mask.affine)
 img.header['cal_min'] = minval
 img.header['cal_max'] = maxval
-nib.save(img,datadir + 'ttest_results/pstats_map_both_runs_srm_v1_FDR_fix.nii.gz')
+nib.save(img,datadir + 'ttest_results/pstats_map_both_runs_srm_v1_all_100.nii.gz')
 
 maxval = np.max(qmap_final3D)
 minval = np.min(qmap_final3D)
 img = nib.Nifti1Image(qmap_final3D, affine=mask.affine)
 img.header['cal_min'] = minval
 img.header['cal_max'] = maxval
-nib.save(img,datadir + 'ttest_results/qstats_map_both_runs_srm_v1_FDR_fix.nii.gz')
+nib.save(img,datadir + 'ttest_results/qstats_map_both_runs_srm_v1_all_100.nii.gz')
 
 maxval = np.max(zmap_final3D)
 minval = np.min(zmap_final3D)
 img = nib.Nifti1Image(zmap_final3D, affine=mask.affine)
 img.header['cal_min'] = minval
 img.header['cal_max'] = maxval
-nib.save(img,datadir + 'ttest_results/zstats_map_both_runs_srm_v1_FDR_fix.nii.gz')
+nib.save(img,datadir + 'ttest_results/zstats_map_both_runs_srm_v1_all_100.nii.gz')
