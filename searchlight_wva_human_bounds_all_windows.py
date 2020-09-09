@@ -27,7 +27,7 @@ n_folds = 7
 hrf = 5
 srm_k = 30
 datadir = '/tigress/jamalw/MES/'
-mask_img = load_img(datadir + 'data/mask_nonan.nii.gz')
+mask_img = load_img(datadir + 'data/a1plus_2mm.nii.gz')
 mask = mask_img.get_data()
 mask_reshape = np.reshape(mask,(91*109*91))
 
@@ -63,9 +63,9 @@ def searchlight(coords,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k):
     SL_allvox = []
     SL_results = []
     datadir = '/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_input/'
-    for x in [40]:
-        for y in [20]:
-           for z in [35]:
+    for x in range(0,np.max(coords, axis=0)[0]+stride,stride):
+        for y in range(0,np.max(coords, axis=0)[1]+stride,stride):
+           for z in range(0,np.max(coords, axis=0)[2]+stride,stride):
                if not os.path.isfile(datadir + subjs[0] + '/' + str(x) + '_' + str(y) + '_' + str(z) + '.npy'):
                    continue
                D = distance.cdist(coords,np.array([x,y,z]).reshape((1,3)))[:,0]
@@ -163,49 +163,12 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
         within = cc[same_event*local_mask].mean()
         across = cc[(~same_event)*local_mask].mean()
         within_across[p] = within - across
-    ##################################################################################
-        # compute average distance between within vs across correlations
-        within_bool = same_event * local_mask
-        across_bool = (~same_event * local_mask)
-        
-        for r in range(within_bool.shape[0]):
-            within_true = np.where(within_bool[r,:] == True)
-            across_true = np.where(across_bool[r,:] == True)
-            within_distances = [i - within_true[0][0] for i in within_true[0][1:]]
-            across_distances = [i - across_true[0][0] for i in across_true[0][1:]]
-            if p == 0:    
-                # append real within distances if 0 and perm if > 0
-                real_within_dist.append(within_distances)
-                # append real across distances if 0 and perm if > 0
-                real_across_dist.append(across_distances)
-            if p > 0:    
-                # append real within distances if 0 and perm if > 0
-                perm_within_dist.append(within_distances)
-                # append real across distances if 0 and perm if > 0
-                perm_across_dist.append(across_distances)
             
         np.random.seed(p)
         events = np.zeros(nTR, dtype=np.int)
         events[np.random.choice(nTR,K-1,replace=False)] = 1
         events = np.cumsum(events)
 
-    # flatten lists of distances
-    real_within_dist_flat = [item for sublist in real_within_dist for item in sublist]
-    real_across_dist_flat = [item for sublist in real_across_dist for item in sublist]
-    perm_within_dist_flat = [item for sublist in perm_within_dist for item in sublist]   
-    perm_across_dist_flat = [item for sublist in perm_across_dist for item in sublist]
-    
-    # get average of each distance
-    real_within_dist_avg = np.mean(real_within_dist_flat)
-    real_across_dist_avg = np.mean(real_across_dist_flat)
-    perm_within_dist_avg = np.mean(perm_within_dist_flat)
-    perm_across_dist_avg = np.mean(perm_across_dist_flat)
-
-    # compute difference between average WvA distances for real and null separately
-    real_diff = real_within_dist_avg - real_across_dist_avg
-    perm_diff = perm_within_dist_avg - perm_across_dist_avg 
-
-    ###################################################################################    
 
     return within_across
 
