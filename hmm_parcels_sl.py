@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 idx = int(sys.argv[1])
 runNum = int(sys.argv[2])
 
+parcelNum = 100
+
 def save_nifti(data,affine,savedir):
     minval = np.min(data)
     maxval = np.max(data)
@@ -21,6 +23,10 @@ def save_nifti(data,affine,savedir):
     img.header["cal_max"] = maxval
     img.header.set_data_dtype(np.float64)
     nib.save(img, savedir)
+
+# Custom mean estimator with Fisher z transformation for correlations
+def fisher_mean(correlation, axis=None):
+    return np.tanh(np.mean(np.arctanh(correlation), axis=axis))
  
 def HMM(X,Y,human_bounds):
 
@@ -47,9 +53,11 @@ def HMM(X,Y,human_bounds):
     within_across = np.zeros(nPerm + 1)
     K = len(human_bounds) + 1
     nTR = X.shape[1]
-    ev = brainiak.eventseg.event.EventSegment(K)
+    ev = brainiak.eventseg.event.EventSegment(K,split_merge=True,split_merge_proposals=3)
     ev.fit(X.T)
     events = np.argmax(ev.segments_[0],axis=1)
+    bounds = np.where(np.diff(np.argmax(ev.segments_[0],axis=1)))[0]
+    _, event_lengths = np.unique(events, return_counts=True)
     max_event_length = stats.mode(events)[1][0]
 
     # compute timepoint by timepoint correlation matrix
@@ -61,20 +69,18 @@ def HMM(X,Y,human_bounds):
         local_mask[np.diag(np.ones(cc.shape[0]-k, dtype=bool), k)] = True
 
     for p in range(nPerm+1):
-        #match[p] = sum([np.min(np.abs(perm_bounds - hb)) for hb in human_bounds])
-        #match[p] = np.sqrt(sum([np.min((perm_bounds - hb)**2) for hb in human_bounds]))
-         
         same_event = events[:,np.newaxis] == events
-        within = cc[same_event*local_mask].mean()
-        across = cc[(~same_event)*local_mask].mean()
+        within = fisher_mean(cc[same_event*local_mask])
+        across = fisher_mean(cc[(~same_event)*local_mask])
         within_across[p] = within - across
 
         np.random.seed(p)
+        perm_lengths = np.random.permutation(event_lengths)
         events = np.zeros(nTR, dtype=np.int)
-        events[np.random.choice(nTR,K-1,replace=False)] = 1
-        events = np.cumsum(events)
+        events[np.cumsum(perm_lengths[:-1])] = 1
+        events = np.cumsum(events)    
 
-    return within_across
+    return within_across,bounds
 
 
 if runNum == 0:
@@ -102,23 +108,25 @@ datadir = '/tigress/jamalw/MES/'
 mask_img = nib.load(datadir + 'data/mask_nonan.nii')
 
 n_iter = 50
-srm_k = 30
+initial_srm_k = 30
 
 # load human boundaries
 human_bounds = np.load(datadir + 'prototype/link/scripts/data/beh/annotations/' + songs[idx] + '_beh_seg.npy')
 
-parcels = nib.load(datadir + "data/CBIG/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_100Parcels_17Networks_order_FSLMNI152_2mm.nii.gz").get_data()
+parcels = nib.load(datadir + "data/CBIG/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Schaefer2018_" + str(parcelNum)  + "Parcels_17Networks_order_FSLMNI152_2mm.nii.gz").get_data()
 
 # create brain-like object to store data into
 pvals = np.zeros_like(mask_img.get_data(),dtype=float)
-match = np.zeros_like(mask_img.get_data())
+zscores = np.zeros_like(mask_img.get_data(),dtype=float)
+rawWvA = np.zeros_like(mask_img.get_data(),dtype=float)
 
-parcel_dir = datadir + "prototype/link/scripts/data/searchlight_input/parcels/Schaefer100/"
+parcel_dir = datadir + "prototype/link/scripts/data/searchlight_input/Schaefer" + str(parcelNum) + "/"
 
-savedir = datadir + "prototype/link/scripts/data/searchlight_output/parcels/Schaefer100/" + songs[idx]
+savedir = datadir + "prototype/link/scripts/data/searchlight_output/parcels/Schaefer" + str(parcelNum) + "/" + songs[idx]
 
 n_folds = 5
 WvA = np.zeros((n_folds,1001))
+bounds = np.zeros((n_folds,len(human_bounds)))
 
 for i in range(int(np.max(parcels))):
     print("Parcel Num: ", str(i+1))
@@ -128,12 +136,18 @@ for i in range(int(np.max(parcels))):
     # initialize list for storing masked data across subjects
     run1 = np.load(parcel_dir + "parcel" + str(i+1) + "_run1.npy")
     run2 = np.load(parcel_dir + "parcel" + str(i+1) + "_run2.npy")
-    
+ 
+    # add lines to check whether number of voxels is less than initial srm K 
+#    if len(indices[0]) < initial_srm_k:
+#        srm_k = len(indices[0])
+#    elif len(indices[0]) >= initial_srm_k:
+#        srm_k = initial_srm_k
+  
     # run SRM on masked data
     if runNum == 0:
-        shared_data = SRM_V1(run1,run2,srm_k,n_iter)
-    elif runNum == 1:
         shared_data = SRM_V1(run2,run1,srm_k,n_iter)
+    elif runNum == 1:
+        shared_data = SRM_V1(run1,run2,srm_k,n_iter)
 
     # perform cross-validation style HMM for n_folds
     for n in range(n_folds):
@@ -149,13 +163,14 @@ for i in range(int(np.max(parcels))):
 
         # fit HMM to song data and return match data where first entry is true match score and all others are permutation scores
         print("Fitting HMM")
-        WvA[n,:] = HMM(others,loo,human_bounds)
+        WvA[n,:],bounds[n,:] = HMM(others,loo,human_bounds)
 
-    # take average of WvA scores over folds
-    avgWvA = np.mean(WvA,axis=0)
+    # take average of WvA scores and bounds over folds
+    avgWvA = fisher_mean(WvA,axis=0)
+    avgBounds = np.mean(bounds,axis=0)
          
     # compute z-score
-    match_z = (avgWvA[0] - np.mean(avgWvA[1:])) / (np.std(avgWvA[1:]))
+    match_z = (avgWvA[0] - fisher_mean(avgWvA[1:])) / (np.std(avgWvA[1:]))
     
     # convert z-score to p-value
     match_p =  st.norm.sf(match_z)
@@ -165,15 +180,22 @@ for i in range(int(np.max(parcels))):
 
     # fit wva score and pvalue into brain
     pvals[indices] = match_p  
-    match[indices] = match_z 
+    zscores[indices] = match_z 
+    rawWvA[indices] = avgWvA[0]
 
 if  runNum == 0:
-    pfn = savedir + "/pvals_srm_v1_test_run2"
-    mfn = savedir + "/match_scores_srm_v1_test_run2"
+    #pfn = savedir + "/pvals_srm_v1_test_run1_split_merge"
+    zfn = savedir + "/zscores_srm_v1_test_run1_split_merge"
+    rfn = savedir + "/rawWva_srm_v1_test_run1_split_merge"
 elif runNum == 1:
-    pfn = savedir + "/pvals_srm_v1_test_run1"
-    mfn = savedir + "/match_scores_srm_v1_test_run1"
+    #pfn = savedir + "/pvals_srm_v1_test_run2_split_merge"
+    zfn = savedir + "/zscores_srm_v1_test_run2_split_merge"
+    rfn = savedir + "/rawWva_srm_v1_test_run2_split_merge"
 
-save_nifti(pvals, mask_img.affine, pfn) 
-save_nifti(match, mask_img.affine, mfn)
-
+#save_nifti(pvals, mask_img.affine, pfn) 
+save_nifti(zscores, mask_img.affine, zfn)
+save_nifti(rawWvA, mask_img.affine, rfn)
+#if runNum == 0:
+#    np.save(savedir + "/hmm_bounds_lmpfc_run2", avgBounds)
+#elif runNum == 1:
+#    np.save(savedir + "/hmm_bounds_lmpfc_run1", avgBounds)
