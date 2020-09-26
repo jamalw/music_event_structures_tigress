@@ -36,8 +36,8 @@ mask_img = load_img(datadir + 'data/mask_nonan.nii')
 mask = mask_img.get_data()
 mask_reshape = np.reshape(mask,(91*109*91))
 
-results_z = np.zeros((91,109,91))
-results_real = np.zeros((91,109,91))
+results_z = np.zeros((91,109,91,n_folds))
+results_real = np.zeros((91,109,91,n_folds))
 
 
 human_bounds = np.load(datadir + 'prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva/' + songs[song_idx] + '/' + songs[song_idx] + '_beh_seg.npy') + hrf
@@ -110,7 +110,8 @@ def searchlight(coords,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k):
     voxmean = voxmean / vox_SLcount[:,np.newaxis]
     vox_z = np.zeros((coords.shape[0], nPerm+1))
     for p in range(nPerm+1):
-        vox_z[:,p] = (voxmean[:,p] - np.mean(voxmean[:,1:],axis=1))/np.std(voxmean[:,1:],axis=1) 
+        print(p)
+        vox_z[:,p] = (voxmean[:,p] - fisher_mean(voxmean[:,1:],axis=1))/np.std(voxmean[:,1:],axis=1) 
     return vox_z,voxmean
 
 def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
@@ -167,8 +168,8 @@ def HMM(X,human_bounds,song_idx,song_bounds,hrf,srm_k):
     # Compute within vs across boundary correlations, for real and permuted bounds
     for p in range(nPerm+1):
         same_event = events[:,np.newaxis] == events
-        within = cc[same_event*local_mask].mean()
-        across = cc[(~same_event)*local_mask].mean()
+        within = fisher_mean(cc[same_event*local_mask])
+        across = fisher_mean(cc[(~same_event)*local_mask])
         within_across[p] = within - across
             
         np.random.seed(p)
@@ -200,24 +201,26 @@ for i in range(n_folds):
     vox_z,raw_wVa_scores = searchlight(coords_mask,human_bounds,mask,song_idx,song_bounds,subjs,hrf,srm_k) 
     # store and average raw scores, z-scores, and permutations
     results3d[mask>0] = vox_z[:,0]
-    results_z[:,:,:] += results3d/n_folds
+    results_z[:,:,:,i] = results3d
     results3d_real[mask>0] = raw_wVa_scores[:,0]
-    results_real[:,:,:] += results3d_real/n_folds
+    results_real[:,:,:,i] = results3d_real
     if runNum == 0:
         for j in range(vox_z.shape[1]):
             results3d_perms[mask>0,j] = vox_z[:,j]
-        np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/perms/full_brain/globals_perms_test_run1_check', results3d_perms)
+        np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/perms/full_brain/globals_perms_test_run1_fisher', results3d_perms)
     elif runNum == 1:
         for j in range(vox_z.shape[1]):
             results3d_perms[mask>0,j] = vox_z[:,j]
-        np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/perms/full_brain/globals_perms_test_run2_check', results3d_perms)
+        np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/perms/full_brain/globals_perms_test_run2_fisher', results3d_perms)
 
+results_z    = np.mean(results_z,axis=3)
+results_real = fisher_mean(results_real,axis=3) 
 
 # save results 
 print('Saving to Searchlight Folders')
 if runNum == 0:
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/real/full_brain/globals_K_raw_test_run1_check_srm_k' + str(srm_k), results_real)
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_test_run1_check_srm_k' + str(srm_k), results_z)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/real/full_brain/globals_K_raw_test_run1_fisher_srm_k' + str(srm_k), results_real)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_test_run1_fisher_srm_k' + str(srm_k), results_z)
 elif runNum == 1:
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/real/full_brain/globals_K_raw_test_run2_check_srm_k' + str(srm_k), results_real)
-    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_test_run2_check_srm_k' + str(srm_k), results_z)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/real/full_brain/globals_K_raw_test_run2_fisher_srm_k' + str(srm_k), results_real)
+    np.save('/tigress/jamalw/MES/prototype/link/scripts/data/searchlight_output/HMM_searchlight_human_bounds_wva_shuffle_event_lengths/' + songs[song_idx] +'/zscores/full_brain/globals_K_zscores_test_run2_fisher_srm_k' + str(srm_k), results_z)
