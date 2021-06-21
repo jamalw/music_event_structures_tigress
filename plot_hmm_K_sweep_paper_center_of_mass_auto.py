@@ -4,9 +4,9 @@ from scipy.stats import sem
 
 datadir = '/tigress/jamalw/MES/prototype/link/scripts/hmm_K_sweep_paper_results/principled/'
 
-smooth_data_fn = 'smooth_wva_split_merge_01_lprec_rA1_bil_PHC_bil_mPFC'
+smooth_data_fn = 'smooth_wva_split_merge_01_bil_A1_no_srm_bil_precuneus_no_srm_bil_mPFC_no_srm_bil_AG_no_srm'
 smooth_data = np.load(datadir + smooth_data_fn + '_auto.npy')
-roi_names = ['rA1', 'lprec', 'bil PHC', 'mPFC']
+roi_names = ['bil aud', 'bil prec', 'bil mPFC', 'bil AG']
 
 roi_data_mean = np.zeros((smooth_data.shape[1],smooth_data.shape[0]))
 
@@ -102,6 +102,6 @@ for p in range(len(roi_data_mean)):
     roi_com_mean[roi_com_names[p]] = np.mean(roi_com[roi_com_names[p]])
 
 
-plt.savefig('hmm_K_sweep_paper_results/principled/' + smooth_data_fn + '_auto.png')
+#plt.savefig('hmm_K_sweep_paper_results/principled/' + smooth_data_fn + '_auto.png')
 
 
