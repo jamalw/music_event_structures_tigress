@@ -34,7 +34,7 @@ plt.xticks(np.arange(1,5),['bil aud', 'bil prec', 'bil mPFC', 'bil AG'],fontsize
 
 #plt.savefig(datadir + 'peakdiff.png')
 
-# Plot peak center of mass for each ROI
+# Plot peak wva fit for each ROI
 print(smooth.max(0))
 print((smooth.max(0)[3]<=smooth.max(0)).mean(1))
 plt.figure(2)
