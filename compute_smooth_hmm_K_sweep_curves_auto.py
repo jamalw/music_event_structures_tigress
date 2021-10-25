@@ -5,7 +5,7 @@ from statsmodels.nonparametric.kernel_regression import KernelReg
 
 datadir = '/tigress/jamalw/MES/prototype/link/scripts/hmm_K_sweep_paper_results/principled/'
 
-roi_input_IDs = ['rA1', 'lprec', 'bil_PHC', 'bil_mPFC']
+roi_input_IDs = ['bil_A1_no_srm_ver2', 'bil_precuneus_no_srm_ver2', 'bil_mPFC_no_srm_ver2', 'bil_AG_no_srm_ver2', 'bil_bil_hipp_anterior_no_srm','bil_bil_hipp_posterior_no_srm']
 suffix = 'wva_split_merge_01'
 save_char = '_'
 save_fn = save_char.join(roi_input_IDs)
