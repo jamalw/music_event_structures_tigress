@@ -5,7 +5,8 @@ from statsmodels.nonparametric.kernel_regression import KernelReg
 
 datadir = '/tigress/jamalw/MES/prototype/link/scripts/hmm_K_sweep_paper_results/principled/'
 
-roi_input_IDs = ['bil_A1_no_srm_ver2', 'bil_precuneus_no_srm_ver2', 'bil_mPFC_no_srm_ver2', 'bil_AG_no_srm_ver2', 'bil_bil_hipp_anterior_no_srm','bil_bil_hipp_posterior_no_srm']
+roi_input_IDs = ['bil_A1_no_srm_ver2', 'bil_precuneus_no_srm_ver2', 'bil_mPFC_no_srm_ver2', 'bil_AG_no_srm_ver2']
+
 suffix = 'wva_split_merge_01'
 save_char = '_'
 save_fn = save_char.join(roi_input_IDs)
@@ -40,21 +41,20 @@ x = event_lengths.ravel()
 test_x = np.linspace(min(x), max(x), num=100)
 smooth_wva = np.zeros((len(unique_event_lengths), len(ROI_data), nBoots))
 
-for b in range(nBoots):
-    # Optimize bandwidth
-    opt_bw = 0
-    for ROI in range(len(ROI_data)):
+opt_bw_holder = np.zeros((nBoots,len(ROI_data)))
+
+for ROI in range(len(ROI_data)):
+    for b in range(nBoots):
+        opt_bw = 0
         y = ROI_data[ROI][:,:,b].ravel()
         KR = KernelReg(y,x,var_type='c')
         opt_bw += KR.bw/len(ROI_data)
-
-    max_wva = np.zeros(len(ROI_data))
-    for ROI in range(len(ROI_data)):
+        opt_bw_holder[b,ROI] = opt_bw
         y = ROI_data[ROI][:,:,b].ravel()
         KR = KernelReg(y,x,var_type='c', bw=opt_bw)
-        max_wva[ROI] = np.argmax(KR.fit(test_x)[0])  # Find peak on fine grid
-        smooth_wva[:, ROI, b] += KR.fit(unique_event_lengths)[0]
+        smooth_wva[:, ROI, b] += KR.fit(unique_event_lengths)[0] 
 
-np.save(datadir + 'smooth_' + suffix + '_' + save_fn + '_auto', smooth_wva)
 
+np.save(datadir + 'smooth_' + suffix + '_' + save_fn + '_auto_independent_bandwidths', smooth_wva)
+np.save(datadir + 'smooth_' + suffix + '_' + save_fn + '_auto_independent_optimal_bandwidth',opt_bw_holder)
 
