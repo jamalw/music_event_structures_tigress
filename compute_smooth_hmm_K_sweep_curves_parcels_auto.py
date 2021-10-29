@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter1d
 from statsmodels.nonparametric.kernel_regression import KernelReg
 
-datadir = '/tigress/jamalw/MES/prototype/link/scripts/hmm_K_sweep_paper_results/principled/'
+datadir = '/tigress/jamalw/MES/prototype/link/scripts/hmm_K_sweep_paper_results/Schaefer300/DMN_no_srm/'
 
-roi_input_IDs = ['bil_A1_no_srm_ver2', 'bil_precuneus_no_srm_ver2', 'bil_mPFC_no_srm_ver2', 'bil_AG_no_srm_ver2','bil_bil_hipp_anterior_no_srm','bil_bil_hipp_posterior_no_srm']
+roi_input_IDs = ['36','37','41','111','112','113','114','115','116','117','118','119','120','121','186','189','271','272','273','274','275','276','277','278','279','280','281','282']
 
-suffix = 'wva_split_merge_01'
+suffix = 'parcel'
 save_char = '_'
-save_fn = save_char.join(roi_input_IDs)
+save_fn = 'DMN'
 
 jobNum = 20
 nBoots = 1000
@@ -22,10 +22,8 @@ ROI_data = []
 for r in range(len(lists)):
     # load in each job (20 of which contain 50 bootstraps each which is 1000 boostraps total) for each ROI separately to be converted into one large matrix containing all bootstraps
     for j in range(jobNum):
-        lists[r].append(np.load(datadir + roi_input_IDs[r] + '_' + suffix + '_' + str(j) + '.npy'))
+        lists[r].append(np.load(datadir + suffix + roi_input_IDs[r] + '_' + str(j) + '.npy'))
     ROI_data.append(np.dstack(lists[r]))
-
-sigma = '5'
 
 durs_run1 = np.array([225,90,180,135,90,180,135,90,180,135,225,90,225,225,180,135])
 
@@ -55,6 +53,5 @@ for ROI in range(len(ROI_data)):
         smooth_wva[:, ROI, b] += KR.fit(unique_event_lengths)[0] 
 
 
-np.save(datadir + 'smooth_' + suffix + '_' + save_fn + '_auto_independent_bandwidths', smooth_wva)
-np.save(datadir + 'smooth_' + suffix + '_' + save_fn + '_auto_independent_optimal_bandwidth',opt_bw_holder)
+np.save(datadir + 'smooth_' + save_fn + '_parcels' + '_auto_independent_bandwidths', smooth_wva)
 
