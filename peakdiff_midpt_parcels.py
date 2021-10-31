@@ -34,9 +34,10 @@ for i in range(28):
         midpt[i,j] = ev[peak_interval].mean()
 
     midpt_brain[indices] = midpt[i,j]
-
+    peakfit_brain[indices] = np.max(smooth.max(0)[i])
 
 save_nifti(midpt_brain, mask_img.affine, datadir + 'preferred_event_lengths_DMN')
+save_nifti(peakfit_brain, mask_img.affine, datadir + 'peak_fit_DMN')
 
 ## Plot peak wva fit for each ROI
 #print(smooth.max(0))
